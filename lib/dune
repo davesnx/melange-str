@@ -1,0 +1,8 @@
+(library
+ (name melange_str)
+ (public_name melange-str)
+ (modes melange)
+ (modules str)
+ (wrapped false)
+ (preprocess
+  (pps melange.ppx)))

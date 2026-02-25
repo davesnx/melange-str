@@ -1,0 +1,20 @@
+(executable
+ (name input)
+ (modules input)
+ (libraries str))
+
+(melange.emit
+ (target output)
+ (modules input)
+ (libraries melange_str)
+ (preprocess (pps melange.ppx)))
+
+(rule
+ (target js.out)
+ (deps (alias melange))
+ (action
+  (with-stdout-to %{target}
+   (run node ./output/test/split/input.js))))
+
+(cram
+ (deps input.exe js.out))
