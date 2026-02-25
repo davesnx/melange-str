@@ -2,6 +2,22 @@
 
 This is a complete implementation of OCaml's `Str` module for Melange, using JavaScript's `RegExp` as the backend.
 
+### Installation
+
+```sh
+opam install melange-str
+```
+
+Then add `melange-str` to the `libraries` field in your `dune` file:
+
+```dune
+(library
+ (name my_lib)
+ (modes melange)
+ (libraries melange-str)
+ (preprocess (pps melange.ppx)))
+```
+
 ### Basic matching
 
 ```ocaml
