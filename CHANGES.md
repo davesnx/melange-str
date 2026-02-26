@@ -1,4 +1,4 @@
-## Unreleased
+## 0.1.0
 
 - Initial release of `melange-str`
 - Complete implementation of OCaml's `Str` module API for Melange
