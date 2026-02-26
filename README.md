@@ -1,6 +1,6 @@
 # `melange-str`
 
-This is a complete implementation of OCaml's `Str` module for Melange, using JavaScript's `RegExp` as the backend.
+Implementation of OCaml's `Str` module for Melange, using JavaScript's `RegExp` as the backend.
 
 ### Installation
 
@@ -36,7 +36,6 @@ let r = Str.regexp {|foo|}
 Str.global_replace r "bar" "foo foo foo"
 (* "bar bar bar" *)
 
-(* With capture groups *)
 let r = Str.regexp {|\([a-z]+\) \([a-z]+\)|}
 Str.global_replace r {|\2 \1|} "hello world"
 (* "world hello" *)
@@ -45,12 +44,10 @@ Str.global_replace r {|\2 \1|} "hello world"
 ### Split
 
 ```ocaml
-(* Split on whitespace *)
 let r = Str.regexp {| +|}
 Str.split r "hello   world   test"
 (* ["hello"; "world"; "test"] *)
 
-(* Split with delimiters *)
 let r = Str.regexp {|[,;]|}
 Str.full_split r "a,b;c"
 (* [Text "a"; Delim ","; Text "b"; Delim ";"; Text "c"] *)
@@ -59,16 +56,13 @@ Str.full_split r "a,b;c"
 ### Advanced features
 
 ```ocaml
-(* Case-insensitive matching *)
 let r = Str.regexp_case_fold {|hello|}
 Str.string_match r "HELLO" 0  (* true *)
 
-(* Search backward *)
 let r = Str.regexp {|[0-9]+|}
 Str.search_backward r "abc 123 def 456 ghi" 10
 (* 4 (position of "123") *)
 
-(* Substitute with function *)
 let r = Str.regexp {|[0-9]+|}
 Str.global_substitute r
   (fun s ->
@@ -135,5 +129,3 @@ For more details on organising universal code, see [How to organise universal co
 ### Known Limitations
 
 1. **Partial match**: Simplified implementation (may not catch all prefix cases)
-2. **Nested group positions**: Approximate due to JavaScript RegExp limitations
-3. **Some PCRE features**: Not available (e.g., named captures in OCaml Str syntax)

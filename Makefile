@@ -53,7 +53,7 @@ create-switch: ## Create opam switch
 
 .PHONY: install
 install: ## Install opam dependencies
-	opam install . --deps-only --with-test -y
+	opam install . --deps-only --with-test --with-dev-setup -y
 
 .PHONY: pin
 pin: ## Pin dependencies
