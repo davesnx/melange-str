@@ -2,7 +2,7 @@
 
 Implementation of OCaml's `Str` module for Melange, using JavaScript's `RegExp` as the backend.
 
-### Installation
+## Installation
 
 ```sh
 opam install melange-str
@@ -124,8 +124,8 @@ let replace_dates text =
 
 Both libraries expose the same modules, so the rest of your code can depend on `my_parser_js` or `my_parser_native` depending on the target. The `mode fallback` option lets you override a shared file in `client/` if you need Melange-specific behavior.
 
-For more details on organising universal code, see [How to organise universal code](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/how-to-organise-universal-code.html).
+For more details on organising universal code, see [How to organise universal code](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/how-to-organise-universal-code.html) from server-reason-react documentation.
 
 ### Known Limitations
 
-1. **Partial match**: Simplified implementation (may not catch all prefix cases)
+- **Partial match** isn't feature complete and may diverge from native `Str` on complex regex edge cases.
