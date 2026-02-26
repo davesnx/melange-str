@@ -52,8 +52,20 @@
   x* -> 'xxx': true
   partial full match: true
   partial no match: false
+  partial literal prefix: true
+  partial literal prefix matched: hello wo
   partial with wildcard: true
   partial wildcard no match: false
+  partial empty string: true
+  partial text prefix: true
+  partial text prefix matched: partial m
+  partial alternation 'part': true
+  partial alternation 'mat': true
+  partial alternation no match: false
+  partial class+literal: true
+  partial grouped email: true
+  partial non-zero start: true
+  partial non-zero matched: partial m
   email pattern: true
   not email: false
   version pattern: true

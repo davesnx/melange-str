@@ -1,4 +1,5 @@
 let print_bool label b = Printf.printf "%s: %b\n" label b
+let print_string label s = Printf.printf "%s: %s\n" label s
 
 let () =
   let r = Str.regexp {|hello|} in
@@ -98,10 +99,32 @@ let () =
   let r = Str.regexp {|hello world|} in
   print_bool "partial full match" (Str.string_partial_match r "hello world" 0);
   print_bool "partial no match" (Str.string_partial_match r "goodbye" 0);
+  print_bool "partial literal prefix" (Str.string_partial_match r "hello wo" 0);
+  print_string "partial literal prefix matched" (Str.matched_string "hello wo");
 
   let r = Str.regexp {|he.*|} in
   print_bool "partial with wildcard" (Str.string_partial_match r "hello" 0);
   print_bool "partial wildcard no match" (Str.string_partial_match r "abc" 0);
+
+  let r = Str.regexp {|partial match|} in
+  print_bool "partial empty string" (Str.string_partial_match r "" 0);
+  print_bool "partial text prefix" (Str.string_partial_match r "partial m" 0);
+  print_string "partial text prefix matched" (Str.matched_string "partial m");
+
+  let r = Str.regexp {|\(partial\)\|\(match\)|} in
+  print_bool "partial alternation 'part'" (Str.string_partial_match r "part" 0);
+  print_bool "partial alternation 'mat'" (Str.string_partial_match r "mat" 0);
+  print_bool "partial alternation no match" (Str.string_partial_match r "zorglub" 0);
+
+  let r = Str.regexp {|[0-9]+abc|} in
+  print_bool "partial class+literal" (Str.string_partial_match r "123a" 0);
+
+  let r = Str.regexp {|\([a-z]+\)@\([a-z]+\)|} in
+  print_bool "partial grouped email" (Str.string_partial_match r "user@" 0);
+
+  let r = Str.regexp {|partial match|} in
+  print_bool "partial non-zero start" (Str.string_partial_match r "zzpartial m" 2);
+  print_string "partial non-zero matched" (Str.matched_string "zzpartial m");
 
   let r = Str.regexp {|^\([a-z]+\)@\([a-z]+\)\.\([a-z]+\)$|} in
   print_bool "email pattern" (Str.string_match r "user@example.com" 0);

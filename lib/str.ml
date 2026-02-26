@@ -2,6 +2,7 @@ type regexp = {
   js_regex: Js.Re.t;
   js_regex_global: Js.Re.t;
   original_pattern: string;
+  group_count: int;
 }
 
 type split_result =
@@ -53,6 +54,210 @@ module Runtime = struct
           match_end;
           groups;
         }
+
+  let set_partial_match_info (group_count : int) (match_start : int) (match_end : int) : unit =
+    let groups = Array.make (group_count + 1) None in
+    groups.(0) <- Some (match_start, match_end);
+    last_match_info := Some {
+      match_start;
+      match_end;
+      groups;
+    }
+
+  let count_groups (pattern : string) : int =
+    let len = String.length pattern in
+    let rec loop i count =
+      if i + 1 >= len then count
+      else if pattern.[i] = '\\' && pattern.[i + 1] = '(' then
+        loop (i + 2) (count + 1)
+      else
+        loop (i + 1) count
+    in
+    loop 0 0
+
+  let is_simple_literal (pattern : string) : string option =
+    let len = String.length pattern in
+    let buf = Buffer.create len in
+    let rec loop i =
+      if i >= len then Some (Buffer.contents buf)
+      else if pattern.[i] = '\\' then
+        if i + 1 >= len then None
+        else
+          match pattern.[i + 1] with
+          | '(' | ')' | '|' | '{' | '}' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+          | 'b' | 'n' | 'r' | 't' ->
+              None
+          | c ->
+              Buffer.add_char buf c;
+              loop (i + 2)
+      else
+        match pattern.[i] with
+        | '.' | '*' | '+' | '?' | '[' | ']' | '^' | '$' | '|' | '(' | ')' | '{' | '}' ->
+            None
+        | c ->
+            Buffer.add_char buf c;
+            loop (i + 1)
+    in
+    loop 0
+
+  let split_simple_alternation (pattern : string) : string list option =
+    let len = String.length pattern in
+    let parts = ref [] in
+    let start = ref 0 in
+    let found = ref false in
+    let i = ref 0 in
+    while !i + 1 < len do
+      if pattern.[!i] = '\\' && pattern.[!i + 1] = '|' then begin
+        found := true;
+        parts := String.sub pattern !start (!i - !start) :: !parts;
+        start := !i + 2;
+        i := !i + 2
+      end else
+        i := !i + 1
+    done;
+    if not !found then
+      None
+    else begin
+      parts := String.sub pattern !start (len - !start) :: !parts;
+      Some (List.rev !parts)
+    end
+
+  let is_prefix_of (prefix : string) (full : string) : bool =
+    let n = String.length prefix in
+    let m = String.length full in
+    if n > m then false
+    else
+      let rec loop i =
+        if i = n then true
+        else if prefix.[i] = full.[i] then loop (i + 1)
+        else false
+      in
+      loop 0
+
+  let prefix_match_literal (pattern : string) (input : string) : bool option =
+    let has_wrapping_group (s : string) : bool =
+      let len = String.length s in
+      if len < 4 || s.[0] <> '\\' || s.[1] <> '(' then
+        false
+      else begin
+        let depth = ref 0 in
+        let closed_at_end = ref false in
+        let ok = ref true in
+        let i = ref 0 in
+        while !ok && !i + 1 < len do
+          if s.[!i] = '\\' && s.[!i + 1] = '(' then begin
+            depth := !depth + 1;
+            i := !i + 2
+          end else if s.[!i] = '\\' && s.[!i + 1] = ')' then begin
+            depth := !depth - 1;
+            if !depth < 0 then ok := false
+            else if !depth = 0 then
+              if !i + 2 = len then closed_at_end := true else ok := false;
+            i := !i + 2
+          end else
+            i := !i + 1
+        done;
+        !ok && !depth = 0 && !closed_at_end
+      end
+    in
+
+    let strip_wrapping_group (s : string) : string option =
+      if has_wrapping_group s then
+        let len = String.length s in
+        Some (String.sub s 2 (len - 4))
+      else
+        None
+    in
+
+    let rec branch_literal s =
+      match is_simple_literal s with
+      | Some literal -> Some literal
+      | None ->
+          (match strip_wrapping_group s with
+           | Some inner -> branch_literal inner
+           | None -> None)
+    in
+
+    match is_simple_literal pattern with
+    | Some literal -> Some (is_prefix_of input literal)
+    | None ->
+        (match split_simple_alternation pattern with
+         | None -> None
+         | Some branches ->
+              let rec any = function
+                | [] -> false
+                | branch :: rest ->
+                    (match branch_literal branch with
+                     | Some literal when is_prefix_of input literal -> true
+                     | _ -> any rest)
+              in
+              Some (any branches))
+
+  let add_char_once (seen : bool array) (chars : char list ref) (c : char) : unit =
+    let code = Char.code c in
+    if code < 256 && not seen.(code) then begin
+      seen.(code) <- true;
+      chars := c :: !chars
+    end
+
+  let heuristic_chars (pattern : string) (input : string) : char list =
+    let seen = Array.make 256 false in
+    let chars = ref [] in
+
+    String.iter (fun c ->
+      match c with
+      | '\\' | '[' | ']' | '^' | '$' | '(' | ')' | '{' | '}' | '|' | '*' | '+' | '?' | '.' -> ()
+      | _ ->
+          if Char.code c < 128 then add_char_once seen chars c
+    ) pattern;
+
+    String.iter (fun c ->
+      if Char.code c < 128 then add_char_once seen chars c
+    ) input;
+
+    let defaults = [ 'a'; 'b'; 'c'; '0'; '1'; '_'; ' '; '.'; '@'; '-'; '/' ] in
+    List.iter (add_char_once seen chars) defaults;
+
+    List.rev !chars
+
+  let matches_from_start (regex : Js.Re.t) (s : string) : bool =
+    match Js.Re.exec ~str:s regex with
+    | Some result -> Js.Re.index result = 0
+    | None -> false
+
+  let has_prefix_extension (regex : Js.Re.t) (pattern : string) (input : string) : bool =
+    match prefix_match_literal pattern input with
+    | Some exact -> exact
+    | None ->
+    let max_extra = 8 in
+    let max_attempts = 20000 in
+    let attempts = ref 0 in
+    let chars = heuristic_chars pattern input in
+
+    let rec search depth_limit depth suffix =
+      if !attempts >= max_attempts then false
+      else begin
+        incr attempts;
+        let candidate = input ^ suffix in
+        if matches_from_start regex candidate then true
+        else if depth >= depth_limit then false
+        else
+          let rec try_chars = function
+            | [] -> false
+            | c :: rest ->
+                let next = suffix ^ String.make 1 c in
+                if search depth_limit (depth + 1) next then true else try_chars rest
+          in
+          try_chars chars
+      end
+    in
+
+    let rec deepen limit =
+      if limit > max_extra || !attempts >= max_attempts then false
+      else if search limit 0 "" then true
+      else deepen (limit + 1)
+    in
+    deepen 0
 
   let convert_pattern (pattern : string) : string =
     let len = String.length pattern in
@@ -189,6 +394,7 @@ let regexp pattern =
     js_regex = Runtime.make_js_regex js_pattern "d";
     js_regex_global = Runtime.make_js_regex js_pattern "gd";
     original_pattern = pattern;
+    group_count = Runtime.count_groups pattern;
   }
 
 let regexp_case_fold pattern =
@@ -197,6 +403,7 @@ let regexp_case_fold pattern =
     js_regex = Runtime.make_js_regex js_pattern "id";
     js_regex_global = Runtime.make_js_regex js_pattern "gid";
     original_pattern = pattern;
+    group_count = Runtime.count_groups pattern;
   }
 
 let quote s =
@@ -208,6 +415,7 @@ let regexp_string s =
     js_regex = Runtime.make_js_regex quoted "d";
     js_regex_global = Runtime.make_js_regex quoted "gd";
     original_pattern = s;
+    group_count = 0;
   }
 
 let regexp_string_case_fold s =
@@ -216,6 +424,7 @@ let regexp_string_case_fold s =
     js_regex = Runtime.make_js_regex quoted "id";
     js_regex_global = Runtime.make_js_regex quoted "gid";
     original_pattern = s;
+    group_count = 0;
   }
 
 let string_match re s pos =
@@ -261,6 +470,9 @@ let search_backward re s last =
   try_pos start
 
 let string_partial_match re s pos =
+  if pos < 0 || pos > String.length s then
+    invalid_arg "Str.string_partial_match"
+  else
   match Runtime.exec_from re.js_regex s pos with
   | Some (result, offset) ->
       let index = Js.Re.index result in
@@ -268,10 +480,21 @@ let string_partial_match re s pos =
         Runtime.set_match_info result s offset;
         true
       end else begin
+        Runtime.clear_match_info ();
         false
       end
   | None ->
-      false
+      let suffix = String.sub s pos (String.length s - pos) in
+      if suffix = "" then begin
+        Runtime.set_partial_match_info re.group_count pos pos;
+        true
+      end else if Runtime.has_prefix_extension re.js_regex re.original_pattern suffix then begin
+        Runtime.set_partial_match_info re.group_count pos (String.length s);
+        true
+      end else begin
+        Runtime.clear_match_info ();
+        false
+      end
 
 let matched_string s =
   let info = Internal.require_match "Str.matched_group" in
