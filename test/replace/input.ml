@@ -17,7 +17,8 @@ let () =
   print_string "first only" (Str.replace_first r "bar" "foo foo foo");
 
   let r = Str.regexp {|\([a-z]+\) \([a-z]+\)|} in
-  print_string "first swap" (Str.replace_first r {|\2 \1|} "hello world foo bar");
+  print_string "first swap"
+    (Str.replace_first r {|\2 \1|} "hello world foo bar");
 
   let r = Str.regexp {|xyz|} in
   print_string "unchanged" (Str.global_replace r "abc" "hello world");

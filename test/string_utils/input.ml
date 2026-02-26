@@ -55,4 +55,4 @@ let () =
   print_string "after mid" (Str.string_after s mid);
   print_int "length before + length after"
     (String.length (Str.string_before s mid)
-     + String.length (Str.string_after s mid))
+    + String.length (Str.string_after s mid))

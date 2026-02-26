@@ -114,7 +114,8 @@ let () =
   let r = Str.regexp {|\(partial\)\|\(match\)|} in
   print_bool "partial alternation 'part'" (Str.string_partial_match r "part" 0);
   print_bool "partial alternation 'mat'" (Str.string_partial_match r "mat" 0);
-  print_bool "partial alternation no match" (Str.string_partial_match r "zorglub" 0);
+  print_bool "partial alternation no match"
+    (Str.string_partial_match r "zorglub" 0);
 
   let r = Str.regexp {|[0-9]+abc|} in
   print_bool "partial class+literal" (Str.string_partial_match r "123a" 0);
@@ -123,7 +124,8 @@ let () =
   print_bool "partial grouped email" (Str.string_partial_match r "user@" 0);
 
   let r = Str.regexp {|partial match|} in
-  print_bool "partial non-zero start" (Str.string_partial_match r "zzpartial m" 2);
+  print_bool "partial non-zero start"
+    (Str.string_partial_match r "zzpartial m" 2);
   print_string "partial non-zero matched" (Str.matched_string "zzpartial m");
 
   let r = Str.regexp {|^\([a-z]+\)@\([a-z]+\)\.\([a-z]+\)$|} in

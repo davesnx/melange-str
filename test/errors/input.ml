@@ -1,11 +1,11 @@
 let try_exn label f =
-  (try
-     f ();
-     Printf.printf "%s: ok\n" label
-   with
-   | Not_found -> Printf.printf "%s: Not_found\n" label
-   | Invalid_argument msg -> Printf.printf "%s: Invalid_argument(%s)\n" label msg
-   | Failure msg -> Printf.printf "%s: Failure(%s)\n" label msg)
+  try
+    f ();
+    Printf.printf "%s: ok\n" label
+  with
+  | Not_found -> Printf.printf "%s: Not_found\n" label
+  | Invalid_argument msg -> Printf.printf "%s: Invalid_argument(%s)\n" label msg
+  | Failure msg -> Printf.printf "%s: Failure(%s)\n" label msg
 
 let setup_match () =
   let r = Str.regexp {|\(hello\) \(world\)|} in
@@ -36,13 +36,16 @@ let () =
   try_exn "group_end 0" (fun () -> ignore (Str.group_end 0));
 
   setup_match ();
-  try_exn "matched_group 3" (fun () -> ignore (Str.matched_group 3 "hello world"));
-  try_exn "matched_group 99" (fun () -> ignore (Str.matched_group 99 "hello world"));
+  try_exn "matched_group 3" (fun () ->
+      ignore (Str.matched_group 3 "hello world"));
+  try_exn "matched_group 99" (fun () ->
+      ignore (Str.matched_group 99 "hello world"));
   try_exn "group_beginning 3" (fun () -> ignore (Str.group_beginning 3));
   try_exn "group_end 3" (fun () -> ignore (Str.group_end 3));
 
   setup_match ();
-  try_exn "matched_group -1" (fun () -> ignore (Str.matched_group (-1) "hello world"));
+  try_exn "matched_group -1" (fun () ->
+      ignore (Str.matched_group (-1) "hello world"));
   try_exn "group_beginning -1" (fun () -> ignore (Str.group_beginning (-1)));
   try_exn "group_end -1" (fun () -> ignore (Str.group_end (-1)));
 
@@ -53,23 +56,28 @@ let () =
   try_exn "group_end 1" (fun () -> ignore (Str.group_end 1));
 
   ignore (Str.string_match (Str.regexp "xyz") "abc" 0);
-  try_exn "replace_matched" (fun () -> ignore (Str.replace_matched {|\0|} "hello"));
+  try_exn "replace_matched" (fun () ->
+      ignore (Str.replace_matched {|\0|} "hello"));
 
   try_exn "before -1" (fun () -> ignore (Str.string_before "hello" (-1)));
   try_exn "before 10" (fun () -> ignore (Str.string_before "hello" 10));
-  try_exn "before 5" (fun () -> Printf.printf "ok: %s\n" (Str.string_before "hello" 5));
+  try_exn "before 5" (fun () ->
+      Printf.printf "ok: %s\n" (Str.string_before "hello" 5));
 
   try_exn "after -1" (fun () -> ignore (Str.string_after "hello" (-1)));
   try_exn "after 10" (fun () -> ignore (Str.string_after "hello" 10));
-  try_exn "after 5" (fun () -> Printf.printf "ok: %s\n" (Str.string_after "hello" 5));
+  try_exn "after 5" (fun () ->
+      Printf.printf "ok: %s\n" (Str.string_after "hello" 5));
 
   try_exn "first -1" (fun () -> ignore (Str.first_chars "hello" (-1)));
   try_exn "first 10" (fun () -> ignore (Str.first_chars "hello" 10));
-  try_exn "first 0" (fun () -> Printf.printf "ok: [%s]\n" (Str.first_chars "hello" 0));
+  try_exn "first 0" (fun () ->
+      Printf.printf "ok: [%s]\n" (Str.first_chars "hello" 0));
 
   try_exn "last -1" (fun () -> ignore (Str.last_chars "hello" (-1)));
   try_exn "last 10" (fun () -> ignore (Str.last_chars "hello" 10));
-  try_exn "last 0" (fun () -> Printf.printf "ok: [%s]\n" (Str.last_chars "hello" 0));
+  try_exn "last 0" (fun () ->
+      Printf.printf "ok: [%s]\n" (Str.last_chars "hello" 0));
 
   try_exn "no match" (fun () ->
       ignore (Str.search_forward (Str.regexp {|xyz|}) "abc" 0));

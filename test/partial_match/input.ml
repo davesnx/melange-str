@@ -1,4 +1,5 @@
 let print_bool label b = Printf.printf "%s: %b\n" label b
+
 let print_exn label f =
   try
     f ();

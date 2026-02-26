@@ -1,28 +1,28 @@
 type regexp = {
-  js_regex: Js.Re.t;
-  js_regex_global: Js.Re.t;
-  original_pattern: string;
-  group_count: int;
+  js_regex : Js.Re.t;
+  js_regex_global : Js.Re.t;
+  original_pattern : string;
+  group_count : int;
 }
 
-type split_result =
-  | Text of string
-  | Delim of string
+type split_result = Text of string | Delim of string
 
 module Runtime = struct
   type match_info = {
-    match_start: int;
-    match_end: int;
-    groups: (int * int) option array;
+    match_start : int;
+    match_end : int;
+    groups : (int * int) option array;
   }
 
   let last_match_info : match_info option ref = ref None
-
   let clear_match_info () = last_match_info := None
 
-  external get_indices : Js.Re.result -> int array Js.Nullable.t array = "indices" [@@mel.get]
+  external get_indices : Js.Re.result -> int array Js.Nullable.t array
+    = "indices"
+  [@@mel.get]
 
-  let set_match_info (result : Js.Re.result) (_input : string) (offset : int) : unit =
+  let set_match_info (result : Js.Re.result) (_input : string) (offset : int) :
+      unit =
     let index = Js.Re.index result in
     let captures = Js.Re.captures result in
     let match_text = Js.Nullable.toOption captures.(0) in
@@ -41,28 +41,20 @@ module Runtime = struct
         for i = 1 to num_groups do
           match Js.Nullable.toOption captures.(i) with
           | None -> groups.(i) <- None
-          | Some _group_text ->
-              (match Js.Nullable.toOption indices.(i) with
-               | Some pair ->
-                   groups.(i) <- Some (offset + pair.(0), offset + pair.(1))
-               | None ->
-                   groups.(i) <- None)
+          | Some _group_text -> (
+              match Js.Nullable.toOption indices.(i) with
+              | Some pair ->
+                  groups.(i) <- Some (offset + pair.(0), offset + pair.(1))
+              | None -> groups.(i) <- None)
         done;
 
-        last_match_info := Some {
-          match_start;
-          match_end;
-          groups;
-        }
+        last_match_info := Some { match_start; match_end; groups }
 
-  let set_partial_match_info (group_count : int) (match_start : int) (match_end : int) : unit =
+  let set_partial_match_info (group_count : int) (match_start : int)
+      (match_end : int) : unit =
     let groups = Array.make (group_count + 1) None in
     groups.(0) <- Some (match_start, match_end);
-    last_match_info := Some {
-      match_start;
-      match_end;
-      groups;
-    }
+    last_match_info := Some { match_start; match_end; groups }
 
   let count_groups (pattern : string) : int =
     let len = String.length pattern in
@@ -70,8 +62,7 @@ module Runtime = struct
       if i + 1 >= len then count
       else if pattern.[i] = '\\' && pattern.[i + 1] = '(' then
         loop (i + 2) (count + 1)
-      else
-        loop (i + 1) count
+      else loop (i + 1) count
     in
     loop 0 0
 
@@ -80,19 +71,20 @@ module Runtime = struct
     let buf = Buffer.create len in
     let rec loop i =
       if i >= len then Some (Buffer.contents buf)
-      else if pattern.[i] = '\\' then
+      else if pattern.[i] = '\\' then (
         if i + 1 >= len then None
         else
           match pattern.[i + 1] with
-          | '(' | ')' | '|' | '{' | '}' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-          | 'b' | 'n' | 'r' | 't' ->
+          | '(' | ')' | '|' | '{' | '}' | '1' | '2' | '3' | '4' | '5' | '6'
+          | '7' | '8' | '9' | 'b' | 'n' | 'r' | 't' ->
               None
           | c ->
               Buffer.add_char buf c;
-              loop (i + 2)
+              loop (i + 2))
       else
         match pattern.[i] with
-        | '.' | '*' | '+' | '?' | '[' | ']' | '^' | '$' | '|' | '(' | ')' | '{' | '}' ->
+        | '.' | '*' | '+' | '?' | '[' | ']' | '^' | '$' | '|' | '(' | ')' | '{'
+        | '}' ->
             None
         | c ->
             Buffer.add_char buf c;
@@ -112,11 +104,10 @@ module Runtime = struct
         parts := String.sub pattern !start (!i - !start) :: !parts;
         start := !i + 2;
         i := !i + 2
-      end else
-        i := !i + 1
+      end
+      else i := !i + 1
     done;
-    if not !found then
-      None
+    if not !found then None
     else begin
       parts := String.sub pattern !start (len - !start) :: !parts;
       Some (List.rev !parts)
@@ -137,8 +128,7 @@ module Runtime = struct
   let prefix_match_literal (pattern : string) (input : string) : bool option =
     let has_wrapping_group (s : string) : bool =
       let len = String.length s in
-      if len < 4 || s.[0] <> '\\' || s.[1] <> '(' then
-        false
+      if len < 4 || s.[0] <> '\\' || s.[1] <> '(' then false
       else begin
         let depth = ref 0 in
         let closed_at_end = ref false in
@@ -148,14 +138,15 @@ module Runtime = struct
           if s.[!i] = '\\' && s.[!i + 1] = '(' then begin
             depth := !depth + 1;
             i := !i + 2
-          end else if s.[!i] = '\\' && s.[!i + 1] = ')' then begin
+          end
+          else if s.[!i] = '\\' && s.[!i + 1] = ')' then begin
             depth := !depth - 1;
             if !depth < 0 then ok := false
             else if !depth = 0 then
               if !i + 2 = len then closed_at_end := true else ok := false;
             i := !i + 2
-          end else
-            i := !i + 1
+          end
+          else i := !i + 1
         done;
         !ok && !depth = 0 && !closed_at_end
       end
@@ -165,35 +156,35 @@ module Runtime = struct
       if has_wrapping_group s then
         let len = String.length s in
         Some (String.sub s 2 (len - 4))
-      else
-        None
+      else None
     in
 
     let rec branch_literal s =
       match is_simple_literal s with
       | Some literal -> Some literal
-      | None ->
-          (match strip_wrapping_group s with
-           | Some inner -> branch_literal inner
-           | None -> None)
+      | None -> (
+          match strip_wrapping_group s with
+          | Some inner -> branch_literal inner
+          | None -> None)
     in
 
     match is_simple_literal pattern with
     | Some literal -> Some (is_prefix_of input literal)
-    | None ->
-        (match split_simple_alternation pattern with
-         | None -> None
-         | Some branches ->
-              let rec any = function
-                | [] -> false
-                | branch :: rest ->
-                    (match branch_literal branch with
-                     | Some literal when is_prefix_of input literal -> true
-                     | _ -> any rest)
-              in
-              Some (any branches))
+    | None -> (
+        match split_simple_alternation pattern with
+        | None -> None
+        | Some branches ->
+            let rec any = function
+              | [] -> false
+              | branch :: rest -> (
+                  match branch_literal branch with
+                  | Some literal when is_prefix_of input literal -> true
+                  | _ -> any rest)
+            in
+            Some (any branches))
 
-  let add_char_once (seen : bool array) (chars : char list ref) (c : char) : unit =
+  let add_char_once (seen : bool array) (chars : char list ref) (c : char) :
+      unit =
     let code = Char.code c in
     if code < 256 && not seen.(code) then begin
       seen.(code) <- true;
@@ -204,16 +195,18 @@ module Runtime = struct
     let seen = Array.make 256 false in
     let chars = ref [] in
 
-    String.iter (fun c ->
-      match c with
-      | '\\' | '[' | ']' | '^' | '$' | '(' | ')' | '{' | '}' | '|' | '*' | '+' | '?' | '.' -> ()
-      | _ ->
-          if Char.code c < 128 then add_char_once seen chars c
-    ) pattern;
+    String.iter
+      (fun c ->
+        match c with
+        | '\\' | '[' | ']' | '^' | '$' | '(' | ')' | '{' | '}' | '|' | '*' | '+'
+        | '?' | '.' ->
+            ()
+        | _ -> if Char.code c < 128 then add_char_once seen chars c)
+      pattern;
 
-    String.iter (fun c ->
-      if Char.code c < 128 then add_char_once seen chars c
-    ) input;
+    String.iter
+      (fun c -> if Char.code c < 128 then add_char_once seen chars c)
+      input;
 
     let defaults = [ 'a'; 'b'; 'c'; '0'; '1'; '_'; ' '; '.'; '@'; '-'; '/' ] in
     List.iter (add_char_once seen chars) defaults;
@@ -225,39 +218,41 @@ module Runtime = struct
     | Some result -> Js.Re.index result = 0
     | None -> false
 
-  let has_prefix_extension (regex : Js.Re.t) (pattern : string) (input : string) : bool =
+  let has_prefix_extension (regex : Js.Re.t) (pattern : string) (input : string)
+      : bool =
     match prefix_match_literal pattern input with
     | Some exact -> exact
     | None ->
-    let max_extra = 8 in
-    let max_attempts = 20000 in
-    let attempts = ref 0 in
-    let chars = heuristic_chars pattern input in
+        let max_extra = 8 in
+        let max_attempts = 20000 in
+        let attempts = ref 0 in
+        let chars = heuristic_chars pattern input in
 
-    let rec search depth_limit depth suffix =
-      if !attempts >= max_attempts then false
-      else begin
-        incr attempts;
-        let candidate = input ^ suffix in
-        if matches_from_start regex candidate then true
-        else if depth >= depth_limit then false
-        else
-          let rec try_chars = function
-            | [] -> false
-            | c :: rest ->
-                let next = suffix ^ String.make 1 c in
-                if search depth_limit (depth + 1) next then true else try_chars rest
-          in
-          try_chars chars
-      end
-    in
+        let rec search depth_limit depth suffix =
+          if !attempts >= max_attempts then false
+          else begin
+            incr attempts;
+            let candidate = input ^ suffix in
+            if matches_from_start regex candidate then true
+            else if depth >= depth_limit then false
+            else
+              let rec try_chars = function
+                | [] -> false
+                | c :: rest ->
+                    let next = suffix ^ String.make 1 c in
+                    if search depth_limit (depth + 1) next then true
+                    else try_chars rest
+              in
+              try_chars chars
+          end
+        in
 
-    let rec deepen limit =
-      if limit > max_extra || !attempts >= max_attempts then false
-      else if search limit 0 "" then true
-      else deepen (limit + 1)
-    in
-    deepen 0
+        let rec deepen limit =
+          if limit > max_extra || !attempts >= max_attempts then false
+          else if search limit 0 "" then true
+          else deepen (limit + 1)
+        in
+        deepen 0
 
   let convert_pattern (pattern : string) : string =
     let len = String.length pattern in
@@ -265,7 +260,7 @@ module Runtime = struct
 
     let rec convert i =
       if i >= len then ()
-      else if pattern.[i] = '\\' && i + 1 < len then
+      else if pattern.[i] = '\\' && i + 1 < len then (
         match pattern.[i + 1] with
         | '(' | ')' | '|' ->
             Buffer.add_char buf pattern.[i + 1];
@@ -274,21 +269,21 @@ module Runtime = struct
             Buffer.add_char buf '\\';
             Buffer.add_char buf pattern.[i + 1];
             convert (i + 2)
-        | 'b' | 'n' | 'r' | 't' | '+' | '*' | '?' | '.' | '^' | '$' | '[' | ']' | '{' | '}' | '\\' ->
+        | 'b' | 'n' | 'r' | 't' | '+' | '*' | '?' | '.' | '^' | '$' | '[' | ']'
+        | '{' | '}' | '\\' ->
             Buffer.add_char buf '\\';
             Buffer.add_char buf pattern.[i + 1];
             convert (i + 2)
         | c ->
             Buffer.add_char buf '\\';
             Buffer.add_char buf c;
-            convert (i + 2)
+            convert (i + 2))
       else begin
         (match pattern.[i] with
-         | '|' | '(' | ')' | '{' | '}' ->
-             Buffer.add_char buf '\\';
-             Buffer.add_char buf pattern.[i]
-         | c ->
-             Buffer.add_char buf c);
+        | '|' | '(' | ')' | '{' | '}' ->
+            Buffer.add_char buf '\\';
+            Buffer.add_char buf pattern.[i]
+        | c -> Buffer.add_char buf c);
         convert (i + 1)
       end
     in
@@ -301,12 +296,12 @@ module Runtime = struct
 
     let rec convert i =
       if i >= len then ()
-      else if template.[i] = '\\' && i + 1 < len then
+      else if template.[i] = '\\' && i + 1 < len then (
         match template.[i + 1] with
         | '0' ->
             Buffer.add_string buf "$&";
             convert (i + 2)
-        | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' as c ->
+        | ('1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9') as c ->
             Buffer.add_char buf '$';
             Buffer.add_char buf c;
             convert (i + 2)
@@ -316,7 +311,7 @@ module Runtime = struct
         | c ->
             Buffer.add_char buf '\\';
             Buffer.add_char buf c;
-            convert (i + 2)
+            convert (i + 2))
       else begin
         Buffer.add_char buf template.[i];
         convert (i + 1)
@@ -327,15 +322,17 @@ module Runtime = struct
 
   external make_js_regex : string -> string -> Js.Re.t = "RegExp" [@@mel.new]
 
-  let exec_from (regex : Js.Re.t) (str : string) (start_pos : int) : (Js.Re.result * int) option =
-    if start_pos < 0 || start_pos > String.length str then
-      None
+  let exec_from (regex : Js.Re.t) (str : string) (start_pos : int) :
+      (Js.Re.result * int) option =
+    if start_pos < 0 || start_pos > String.length str then None
     else if start_pos = String.length str then
       match Js.Re.exec ~str:"" regex with
       | Some result -> Some (result, start_pos)
       | None -> None
     else
-      let substring = String.sub str start_pos (String.length str - start_pos) in
+      let substring =
+        String.sub str start_pos (String.length str - start_pos)
+      in
       match Js.Re.exec ~str:substring regex with
       | Some result -> Some (result, start_pos)
       | None -> None
@@ -351,10 +348,8 @@ module Runtime = struct
           let index = Js.Re.index result in
           results := (result, index) :: !results;
           let last_index = Js.Re.lastIndex regex in
-          if last_index = index then
-            Js.Re.setLastIndex regex (index + 1)
-      | None ->
-          continue := false
+          if last_index = index then Js.Re.setLastIndex regex (index + 1)
+      | None -> continue := false
     done;
 
     Array.of_list (List.rev !results)
@@ -368,8 +363,7 @@ module Runtime = struct
       | '\\' | '.' | '*' | '+' | '?' | '[' | ']' | '^' | '$' ->
           Buffer.add_char buf '\\';
           Buffer.add_char buf s.[i]
-      | c ->
-          Buffer.add_char buf c
+      | c -> Buffer.add_char buf c
     done;
 
     Buffer.contents buf
@@ -379,8 +373,7 @@ module Internal = struct
   let substring s start end_pos =
     if start < 0 || end_pos > String.length s || start > end_pos then
       invalid_arg "Str: invalid substring bounds"
-    else
-      String.sub s start (end_pos - start)
+    else String.sub s start (end_pos - start)
 
   let require_match msg =
     match !Runtime.last_match_info with
@@ -406,8 +399,7 @@ let regexp_case_fold pattern =
     group_count = Runtime.count_groups pattern;
   }
 
-let quote s =
-  Runtime.quote_regex s
+let quote s = Runtime.quote_regex s
 
 let regexp_string s =
   let quoted = Runtime.quote_regex s in
@@ -434,7 +426,8 @@ let string_match re s pos =
       if index = 0 then begin
         Runtime.set_match_info result s offset;
         true
-      end else begin
+      end
+      else begin
         Runtime.clear_match_info ();
         false
       end
@@ -459,13 +452,13 @@ let search_backward re s last =
     if pos < 0 then begin
       Runtime.clear_match_info ();
       raise Not_found
-    end else
+    end
+    else
       match Runtime.exec_from re.js_regex s pos with
       | Some (result, offset) when Js.Re.index result = 0 ->
           Runtime.set_match_info result s offset;
           pos
-      | _ ->
-          try_pos (pos - 1)
+      | _ -> try_pos (pos - 1)
   in
   try_pos start
 
@@ -473,28 +466,33 @@ let string_partial_match re s pos =
   if pos < 0 || pos > String.length s then
     invalid_arg "Str.string_partial_match"
   else
-  match Runtime.exec_from re.js_regex s pos with
-  | Some (result, offset) ->
-      let index = Js.Re.index result in
-      if index = 0 then begin
-        Runtime.set_match_info result s offset;
-        true
-      end else begin
-        Runtime.clear_match_info ();
-        false
-      end
-  | None ->
-      let suffix = String.sub s pos (String.length s - pos) in
-      if suffix = "" then begin
-        Runtime.set_partial_match_info re.group_count pos pos;
-        true
-      end else if Runtime.has_prefix_extension re.js_regex re.original_pattern suffix then begin
-        Runtime.set_partial_match_info re.group_count pos (String.length s);
-        true
-      end else begin
-        Runtime.clear_match_info ();
-        false
-      end
+    match Runtime.exec_from re.js_regex s pos with
+    | Some (result, offset) ->
+        let index = Js.Re.index result in
+        if index = 0 then begin
+          Runtime.set_match_info result s offset;
+          true
+        end
+        else begin
+          Runtime.clear_match_info ();
+          false
+        end
+    | None ->
+        let suffix = String.sub s pos (String.length s - pos) in
+        if suffix = "" then begin
+          Runtime.set_partial_match_info re.group_count pos pos;
+          true
+        end
+        else if
+          Runtime.has_prefix_extension re.js_regex re.original_pattern suffix
+        then begin
+          Runtime.set_partial_match_info re.group_count pos (String.length s);
+          true
+        end
+        else begin
+          Runtime.clear_match_info ();
+          false
+        end
 
 let matched_string s =
   let info = Internal.require_match "Str.matched_group" in
@@ -510,14 +508,11 @@ let match_end () =
 
 let matched_group n s =
   let info = Internal.require_match "Str.matched_group" in
-  if n < 0 || n >= Array.length info.groups then
-    invalid_arg "Str.matched_group"
+  if n < 0 || n >= Array.length info.groups then invalid_arg "Str.matched_group"
   else
     match info.groups.(n) with
-    | Some (start_pos, end_pos) ->
-        Internal.substring s start_pos end_pos
-    | None ->
-        raise Not_found
+    | Some (start_pos, end_pos) -> Internal.substring s start_pos end_pos
+    | None -> raise Not_found
 
 let group_beginning n =
   let info = Internal.require_match "Str.group_beginning" in
@@ -530,14 +525,14 @@ let group_beginning n =
 
 let group_end n =
   let info = Internal.require_match "Str.group_end" in
-  if n < 0 || n >= Array.length info.groups then
-    invalid_arg "Str.group_end"
+  if n < 0 || n >= Array.length info.groups then invalid_arg "Str.group_end"
   else
     match info.groups.(n) with
     | Some (_, end_pos) -> end_pos
     | None -> raise Not_found
 
-external js_string_replace : string -> Js.Re.t -> string -> string = "replace" [@@mel.send]
+external js_string_replace : string -> Js.Re.t -> string -> string = "replace"
+[@@mel.send]
 
 let global_replace re templ s =
   let js_templ = Runtime.convert_replacement templ in
@@ -553,29 +548,29 @@ let global_substitute re subst s =
   let js_pattern = Runtime.convert_pattern re.original_pattern in
   let all_matches = Runtime.exec_all js_pattern s in
 
-  if Array.length all_matches = 0 then
-    s
+  if Array.length all_matches = 0 then s
   else begin
     let buf = Buffer.create (String.length s) in
     let last_pos = ref 0 in
 
-    Array.iter (fun (result, pos) ->
-      let index = pos in
-      let captures = Js.Re.captures result in
-      let matched = Js.Nullable.toOption captures.(0) in
+    Array.iter
+      (fun (result, pos) ->
+        let index = pos in
+        let captures = Js.Re.captures result in
+        let matched = Js.Nullable.toOption captures.(0) in
 
-      match matched with
-      | Some matched_text ->
-          if index > !last_pos then
-            Buffer.add_substring buf s !last_pos (index - !last_pos);
+        match matched with
+        | Some matched_text ->
+            if index > !last_pos then
+              Buffer.add_substring buf s !last_pos (index - !last_pos);
 
-          Runtime.set_match_info result s 0;
-          let replacement = subst s in
-          Buffer.add_string buf replacement;
+            Runtime.set_match_info result s 0;
+            let replacement = subst s in
+            Buffer.add_string buf replacement;
 
-          last_pos := index + String.length matched_text
-      | None -> ()
-    ) all_matches;
+            last_pos := index + String.length matched_text
+        | None -> ())
+      all_matches;
 
     if !last_pos < String.length s then
       Buffer.add_substring buf s !last_pos (String.length s - !last_pos);
@@ -594,19 +589,20 @@ let substitute_first re subst s =
       begin match matched with
       | Some matched_text ->
           let before = String.sub s 0 index in
-          let after = String.sub s (index + String.length matched_text)
-                                    (String.length s - index - String.length matched_text) in
+          let after =
+            String.sub s
+              (index + String.length matched_text)
+              (String.length s - index - String.length matched_text)
+          in
 
           Runtime.set_match_info result s offset;
           let replacement = subst s in
           Runtime.clear_match_info ();
 
           before ^ replacement ^ after
-      | None ->
-          s
+      | None -> s
       end
-  | None ->
-      s
+  | None -> s
 
 let replace_matched repl s =
   let info = !Runtime.last_match_info in
@@ -615,13 +611,13 @@ let replace_matched repl s =
   let get_group n =
     match info with
     | None -> failwith "Str.replace: reference to unmatched group"
-    | Some i ->
+    | Some i -> (
         if n < 0 || n >= Array.length i.groups then
           failwith "Str.replace: reference to unmatched group"
         else
           match i.groups.(n) with
           | Some (start_pos, end_pos) -> Internal.substring s start_pos end_pos
-          | None -> failwith "Str.replace: reference to unmatched group"
+          | None -> failwith "Str.replace: reference to unmatched group")
   in
 
   let get_whole_match () =
@@ -635,18 +631,18 @@ let replace_matched repl s =
 
   let rec process i =
     if i >= len then ()
-    else if js_repl.[i] = '$' && i + 1 < len then
+    else if js_repl.[i] = '$' && i + 1 < len then (
       match js_repl.[i + 1] with
       | '&' ->
           Buffer.add_string buf (get_whole_match ());
           process (i + 2)
-      | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' as c ->
+      | ('1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9') as c ->
           let n = Char.code c - Char.code '0' in
           Buffer.add_string buf (get_group n);
           process (i + 2)
       | _ ->
           Buffer.add_char buf '$';
-          process (i + 1)
+          process (i + 1))
     else begin
       Buffer.add_char buf js_repl.[i];
       process (i + 1)
@@ -655,19 +651,17 @@ let replace_matched repl s =
   process 0;
   Buffer.contents buf
 
-external js_string_split : string -> Js.Re.t -> string array = "split" [@@mel.send]
+external js_string_split : string -> Js.Re.t -> string array = "split"
+[@@mel.send]
 
 let split re s =
   Runtime.clear_match_info ();
   let parts = js_string_split s re.js_regex_global in
   let result = Array.to_list parts in
-  let strip_first = function
-    | "" :: rest -> rest
-    | lst -> lst
-  in
+  let strip_first = function "" :: rest -> rest | lst -> lst in
   let rec strip_last = function
     | [] -> []
-    | [""] -> []
+    | [ "" ] -> []
     | x :: xs -> x :: strip_last xs
   in
   strip_last (strip_first result)
@@ -684,7 +678,7 @@ let bounded_split re s max_splits =
     let last_pos = ref (String.length s) in
 
     for i = num_splits - 1 downto 0 do
-      let (match_result, pos) = all_matches.(i) in
+      let match_result, pos = all_matches.(i) in
       let captures = Js.Re.captures match_result in
       match Js.Nullable.toOption captures.(0) with
       | Some matched_text ->
@@ -698,8 +692,7 @@ let bounded_split re s max_splits =
       | None -> ()
     done;
 
-    if !last_pos > 0 then
-      result := String.sub s 0 !last_pos :: !result;
+    if !last_pos > 0 then result := String.sub s 0 !last_pos :: !result;
 
     !result
   end
@@ -724,13 +717,13 @@ let bounded_split_delim re s max_splits =
     let last_end = ref 0 in
 
     for i = 0 to n_splits - 1 do
-      let (match_result, pos) = all_matches.(i) in
+      let match_result, pos = all_matches.(i) in
       let captures = Js.Re.captures match_result in
-      (match Js.Nullable.toOption captures.(0) with
-       | Some matched_text ->
-           result := String.sub s !last_end (pos - !last_end) :: !result;
-           last_end := pos + String.length matched_text
-       | None -> ())
+      match Js.Nullable.toOption captures.(0) with
+      | Some matched_text ->
+          result := String.sub s !last_end (pos - !last_end) :: !result;
+          last_end := pos + String.length matched_text
+      | None -> ()
     done;
 
     result := String.sub s !last_end (String.length s - !last_end) :: !result;
@@ -742,14 +735,13 @@ let full_split re s =
   let js_pattern = Runtime.convert_pattern re.original_pattern in
   let all_matches = Runtime.exec_all js_pattern s in
 
-  if Array.length all_matches = 0 then
-    [Text s]
+  if Array.length all_matches = 0 then [ Text s ]
   else begin
     let result = ref [] in
     let last_pos = ref (String.length s) in
 
     for i = Array.length all_matches - 1 downto 0 do
-      let (match_result, pos) = all_matches.(i) in
+      let match_result, pos = all_matches.(i) in
       let captures = Js.Re.captures match_result in
       match Js.Nullable.toOption captures.(0) with
       | Some matched_text ->
@@ -757,7 +749,8 @@ let full_split re s =
           let match_end = pos + String.length matched_text in
 
           if match_end < !last_pos then
-            result := Text (String.sub s match_end (!last_pos - match_end)) :: !result;
+            result :=
+              Text (String.sub s match_end (!last_pos - match_end)) :: !result;
 
           result := Delim matched_text :: !result;
 
@@ -765,8 +758,7 @@ let full_split re s =
       | None -> ()
     done;
 
-    if !last_pos > 0 then
-      result := Text (String.sub s 0 !last_pos) :: !result;
+    if !last_pos > 0 then result := Text (String.sub s 0 !last_pos) :: !result;
 
     !result
   end
@@ -780,36 +772,32 @@ let bounded_full_split re s max_splits =
 
     let n_splits = min (Array.length all_matches) (max_splits - 1) in
 
-    if n_splits = 0 then
-      [Text s]
+    if n_splits = 0 then [ Text s ]
     else begin
       let result = ref [] in
       let last_end = ref 0 in
 
       for i = 0 to n_splits - 1 do
-        let (match_result, pos) = all_matches.(i) in
+        let match_result, pos = all_matches.(i) in
         let captures = Js.Re.captures match_result in
-        (match Js.Nullable.toOption captures.(0) with
-         | Some matched_text ->
-             if pos > !last_end then
-               result := Text (String.sub s !last_end (pos - !last_end)) :: !result;
-             result := Delim matched_text :: !result;
-             last_end := pos + String.length matched_text
-         | None -> ())
+        match Js.Nullable.toOption captures.(0) with
+        | Some matched_text ->
+            if pos > !last_end then
+              result :=
+                Text (String.sub s !last_end (pos - !last_end)) :: !result;
+            result := Delim matched_text :: !result;
+            last_end := pos + String.length matched_text
+        | None -> ()
       done;
 
       let remaining = String.sub s !last_end (String.length s - !last_end) in
-      if remaining <> "" then
-        result := Text remaining :: !result;
+      if remaining <> "" then result := Text remaining :: !result;
 
       List.rev !result
     end
   end
 
 let string_before s n = String.sub s 0 n
-
 let string_after s n = String.sub s n (String.length s - n)
-
 let first_chars s n = String.sub s 0 n
-
 let last_chars s n = String.sub s (String.length s - n) n

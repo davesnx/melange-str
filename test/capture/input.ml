@@ -64,4 +64,5 @@ let () =
   let r = Str.regexp {|[a-z]+|} in
   let _ = Str.string_match r "hello" 0 in
   print_string "group 0" (Str.matched_group 0 "hello");
-  print_bool "group 0 = matched_string" (Str.matched_group 0 "hello" = Str.matched_string "hello")
+  print_bool "group 0 = matched_string"
+    (Str.matched_group 0 "hello" = Str.matched_string "hello")

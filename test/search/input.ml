@@ -31,11 +31,11 @@ let () =
 
   let r = Str.regexp {|[0-9]+|} in
   try_search "from end" (fun () ->
-    Str.search_backward r "abc 123 def 456 ghi" 18);
+      Str.search_backward r "abc 123 def 456 ghi" 18);
 
   let r = Str.regexp {|[0-9]+|} in
   try_search "from 10" (fun () ->
-    Str.search_backward r "abc 123 def 456 ghi" 10);
+      Str.search_backward r "abc 123 def 456 ghi" 10);
 
   let r = Str.regexp {|xyz|} in
   try_search "not found" (fun () -> Str.search_backward r "hello world" 10);

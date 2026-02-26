@@ -3,12 +3,12 @@ let print_string label s = Printf.printf "%s: %s\n" label s
 let print_int label n = Printf.printf "%s: %d\n" label n
 
 let try_exn label f =
-  (try
-     f ();
-     Printf.printf "%s: ok\n" label
-   with
-   | Not_found -> Printf.printf "%s: Not_found\n" label
-   | Invalid_argument msg -> Printf.printf "%s: Invalid_argument(%s)\n" label msg)
+  try
+    f ();
+    Printf.printf "%s: ok\n" label
+  with
+  | Not_found -> Printf.printf "%s: Not_found\n" label
+  | Invalid_argument msg -> Printf.printf "%s: Invalid_argument(%s)\n" label msg
 
 let print_list label lst =
   Printf.printf "%s:\n" label;
@@ -23,14 +23,12 @@ let print_split_results label lst =
     lst
 
 let () =
-  try_exn "no prior match" (fun () ->
-      ignore (Str.matched_string "hello"));
+  try_exn "no prior match" (fun () -> ignore (Str.matched_string "hello"));
 
   try_exn "no prior match group" (fun () ->
       ignore (Str.matched_group 1 "hello"));
 
-  try_exn "no prior match_beginning" (fun () ->
-      ignore (Str.match_beginning ()));
+  try_exn "no prior match_beginning" (fun () -> ignore (Str.match_beginning ()));
 
   try_exn "search past end" (fun () ->
       ignore (Str.search_forward (Str.regexp {|x|}) "abc" 0));
@@ -137,8 +135,7 @@ let () =
   let _ = Str.string_match r "hello" 0 in
   print_string "group 1 after success" (Str.matched_group 1 "hello");
   let _ = Str.string_match r "123" 0 in
-  try_exn "group after fail" (fun () ->
-      ignore (Str.matched_group 1 "123"));
+  try_exn "group after fail" (fun () -> ignore (Str.matched_group 1 "123"));
 
   let r = Str.regexp {|\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)|} in
   let _ = Str.string_match r "1.22.333" 0 in
