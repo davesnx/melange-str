@@ -7,13 +7,16 @@
  (target output)
  (modules input)
  (libraries melange_str)
- (preprocess (pps melange.ppx)))
+ (preprocess
+  (pps melange.ppx)))
 
 (rule
  (target js.out)
- (deps (alias melange))
+ (deps
+  (alias melange))
  (action
-  (with-stdout-to %{target}
+  (with-stdout-to
+   %{target}
    (run node ./output/test/replace/input.js))))
 
 (cram
