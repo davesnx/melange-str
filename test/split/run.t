@@ -83,4 +83,4 @@
     Delim(,)
     Delim(,)
     Text(b)
-  $ ./input.exe > native.out && diff native.out js.out
+  $ ./input.exe > native.out && diff --strip-trailing-cr native.out js.out

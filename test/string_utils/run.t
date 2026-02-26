@@ -29,4 +29,4 @@
   before mid: hello
   after mid:  world
   length before + length after: 11
-  $ ./input.exe > native.out && diff native.out js.out
+  $ ./input.exe > native.out && diff --strip-trailing-cr native.out js.out

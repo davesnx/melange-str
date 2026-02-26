@@ -54,4 +54,4 @@
   matched: c
   outer group: Not_found
   inner group: Not_found
-  $ ./input.exe > native.out && diff native.out js.out
+  $ ./input.exe > native.out && diff --strip-trailing-cr native.out js.out

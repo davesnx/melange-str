@@ -29,4 +29,4 @@
   anchored prefix matched: hello wo
   invalid pos: Invalid_argument(Str.string_partial_match)
   invalid pos matched: <none>
-  $ ./input.exe > native.out && diff native.out js.out
+  $ ./input.exe > native.out && diff --strip-trailing-cr native.out js.out

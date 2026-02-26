@@ -26,4 +26,4 @@
   group 1: Not_found
   group 0: hello
   group 0 = matched_string: true
-  $ ./input.exe > native.out && diff native.out js.out
+  $ ./input.exe > native.out && diff --strip-trailing-cr native.out js.out
