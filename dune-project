@@ -1,5 +1,7 @@
 (lang dune 3.8)
 
+(name melange-str)
+
 (using melange 0.1)
 
 (generate_opam_files true)
