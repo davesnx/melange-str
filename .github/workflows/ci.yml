@@ -37,6 +37,7 @@ jobs:
         os:
           - macos-latest
           - ubuntu-latest
+          - windows-latest
         ocaml-compiler:
           - 5.4.0
 
