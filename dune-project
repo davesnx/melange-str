@@ -17,10 +17,11 @@
  (homepage "https://github.com/davesnx/melange-str")
  (bug_reports "https://github.com/davesnx/melange-str/issues")
  (source (github davesnx/melange-str))
- (depends
-  (ocaml
-   (>= 5.0))
-  (melange
-   (>= 6.0))
-  (ocaml-lsp-server :with-dev-setup)
-  (ocamlformat :with-dev-setup)))
+  (depends
+   (ocaml
+    (>= 5.0))
+   (melange
+    (>= 6.0))
+   (conf-nodejs :with-test)
+   (ocaml-lsp-server :with-dev-setup)
+   (ocamlformat :with-dev-setup)))
