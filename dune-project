@@ -22,6 +22,6 @@
     (>= 5.0))
    (melange
     (>= 6.0))
-   (conf-nodejs :with-test)
+   (conf-npm :with-test)
    (ocaml-lsp-server :with-dev-setup)
    (ocamlformat :with-dev-setup)))
