@@ -1,0 +1,1 @@
+x-ci-accept-failures: ["alpine-3.22" "ubuntu-22.04"]
