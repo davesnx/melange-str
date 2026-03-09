@@ -44,17 +44,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.4.5
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: false
           opam-disable-sandboxing: true
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
 
       - name: Install opam deps
         run: make install
