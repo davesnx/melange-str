@@ -61,24 +61,26 @@ jobs:
         shell: pwsh
         run: |
           $nodeDir = (Get-Command node).Source | Split-Path
-          Add-Type -OutputType ConsoleApplication -OutputAssembly "$nodeDir\npm.exe" -TypeDefinition @'
+          $shimSrc = "$env:RUNNER_TEMP\npm-shim.cs"
+          Set-Content -Path $shimSrc -Value @'
           using System;
           using System.Diagnostics;
           using System.IO;
+          using System.Reflection;
           class NpmShim {
               static int Main(string[] args) {
-                  string exeDir = Path.GetDirectoryName(
-                      System.Reflection.Assembly.GetExecutingAssembly().Location);
-                  var psi = new ProcessStartInfo();
+                  string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                  ProcessStartInfo psi = new ProcessStartInfo();
                   psi.FileName = Path.Combine(exeDir, "npm.cmd");
                   psi.Arguments = String.Join(" ", args);
                   psi.UseShellExecute = false;
-                  var p = Process.Start(psi);
+                  Process p = Process.Start(psi);
                   p.WaitForExit();
                   return p.ExitCode;
-              }
+                }
           }
           '@
+          & C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /out:"$nodeDir\npm.exe" $shimSrc
           & "$nodeDir\npm.exe" --version
 
       - name: Install opam deps
