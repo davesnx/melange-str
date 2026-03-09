@@ -56,15 +56,19 @@ jobs:
           dune-cache: false
           opam-disable-sandboxing: true
 
-      - name: Make node available in Cygwin
+      - name: Make node/npm available to opam on Windows
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          NODE_DIR=$(cygpath "$RUNNER_TOOL_CACHE/node/$(node --version | sed 's/^v//')/x64")
-          ln -sf "$NODE_DIR/node.exe" /usr/local/bin/node
-          ln -sf "$NODE_DIR/npm" /usr/local/bin/npm
-          ln -sf "$NODE_DIR/npx" /usr/local/bin/npx
-          which npm
-          npm --version
+          $nodePath = (Get-Command node).Source | Split-Path
+          Write-Host "Node.js is at: $nodePath"
+          Copy-Item "$nodePath\node.exe" "C:\cygwin\bin\node.exe"
+          Copy-Item "$nodePath\npm" "C:\cygwin\bin\npm"
+          Copy-Item "$nodePath\npm.cmd" "C:\cygwin\bin\npm.cmd"
+          Copy-Item "$nodePath\npx" "C:\cygwin\bin\npx"
+          Copy-Item "$nodePath\npx.cmd" "C:\cygwin\bin\npx.cmd"
+          Copy-Item "$nodePath\node_modules" "C:\cygwin\bin\node_modules" -Recurse
+          C:\cygwin\bin\bash.exe -lc "npm --version"
 
       - name: Install opam deps
         run: make install
