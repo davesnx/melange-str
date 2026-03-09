@@ -60,11 +60,14 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           NODE_VER=$(node --version | sed 's/^v//')
-          NODE_WIN="C:\\hostedtoolcache\\windows\\node\\${NODE_VER}\\x64"
-          # Add node to the opam switch PATH so opam can find npm
-          opam option --global "setenv+=[PATH += \"${NODE_WIN}\"]"
-          opam env
-          npm --version
+          NODE_DIR="/cygdrive/c/hostedtoolcache/windows/node/${NODE_VER}/x64"
+          # Copy node and npm into the opam switch bin dir so opam can find them
+          OPAM_BIN=$(opam var bin)
+          cp "${NODE_DIR}/node.exe" "${OPAM_BIN}/node.exe"
+          cp "${NODE_DIR}/npm" "${OPAM_BIN}/npm"
+          cp "${NODE_DIR}/npm.cmd" "${OPAM_BIN}/npm.cmd"
+          cp -r "${NODE_DIR}/node_modules" "${OPAM_BIN}/node_modules"
+          opam exec -- npm --version
 
       - name: Install opam deps
         run: make install
