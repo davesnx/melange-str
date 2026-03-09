@@ -62,7 +62,7 @@ jobs:
         run: |
           $nodePath = (Get-Command node).Source | Split-Path
           $bashEnv = [System.Environment]::GetEnvironmentVariable("BASH_ENV")
-          Add-Content -Path $bashEnv -Value "export PATH=`$(cygpath -u '$nodePath'):`$PATH"
+          Add-Content -Path $bashEnv -Value "`nexport PATH=`$(cygpath -u '$nodePath'):`$PATH"
 
       - name: Install opam deps
         run: make install
