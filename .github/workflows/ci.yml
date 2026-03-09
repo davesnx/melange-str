@@ -58,11 +58,13 @@ jobs:
 
       - name: Make node available in Cygwin
         if: runner.os == 'Windows'
-        shell: pwsh
         run: |
-          $nodePath = (Get-Command node).Source | Split-Path
-          $bashEnv = [System.Environment]::GetEnvironmentVariable("BASH_ENV")
-          Add-Content -Path $bashEnv -Value "`nexport PATH=`$(cygpath -u '$nodePath'):`$PATH"
+          NODE_DIR=$(cygpath "$RUNNER_TOOL_CACHE/node/$(node --version | sed 's/^v//')/x64")
+          ln -sf "$NODE_DIR/node.exe" /usr/local/bin/node
+          ln -sf "$NODE_DIR/npm" /usr/local/bin/npm
+          ln -sf "$NODE_DIR/npx" /usr/local/bin/npx
+          which npm
+          npm --version
 
       - name: Install opam deps
         run: make install
