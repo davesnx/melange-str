@@ -58,16 +58,16 @@ jobs:
 
       - name: Make node/npm available to opam on Windows
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          NODE_VER=$(node --version | sed 's/^v//')
-          NODE_DIR="/cygdrive/c/hostedtoolcache/windows/node/${NODE_VER}/x64"
-          # Copy node and npm into the opam switch bin dir so opam can find them
-          OPAM_BIN=$(opam var bin)
-          cp "${NODE_DIR}/node.exe" "${OPAM_BIN}/node.exe"
-          cp "${NODE_DIR}/npm" "${OPAM_BIN}/npm"
-          cp "${NODE_DIR}/npm.cmd" "${OPAM_BIN}/npm.cmd"
-          cp -r "${NODE_DIR}/node_modules" "${OPAM_BIN}/node_modules"
-          opam exec -- npm --version
+          $nodeDir = (Get-Command node).Source | Split-Path
+          $opamBin = & C:\hostedtoolcache\windows\opam\2.4.1\x86_64\opam.exe var bin
+          Write-Host "Copying node/npm from $nodeDir to $opamBin"
+          Copy-Item "$nodeDir\node.exe" "$opamBin\node.exe" -Force
+          Copy-Item "$nodeDir\npm.cmd" "$opamBin\npm.cmd" -Force
+          Copy-Item "$nodeDir\npx.cmd" "$opamBin\npx.cmd" -Force
+          Copy-Item "$nodeDir\node_modules" "$opamBin\node_modules" -Recurse -Force
+          & "$opamBin\npm.cmd" --version
 
       - name: Install opam deps
         run: make install
