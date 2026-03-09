@@ -56,18 +56,30 @@ jobs:
           dune-cache: false
           opam-disable-sandboxing: true
 
-      - name: Make node/npm available to opam on Windows
+      - name: Create npm.exe shim for opam on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $nodeDir = (Get-Command node).Source | Split-Path
-          $opamBin = & C:\hostedtoolcache\windows\opam\2.4.1\x86_64\opam.exe var bin
-          Write-Host "Copying node/npm from $nodeDir to $opamBin"
-          Copy-Item "$nodeDir\node.exe" "$opamBin\node.exe" -Force
-          Copy-Item "$nodeDir\npm.cmd" "$opamBin\npm.cmd" -Force
-          Copy-Item "$nodeDir\npx.cmd" "$opamBin\npx.cmd" -Force
-          Copy-Item "$nodeDir\node_modules" "$opamBin\node_modules" -Recurse -Force
-          & "$opamBin\npm.cmd" --version
+          Add-Type -OutputType ConsoleApplication -OutputAssembly "$nodeDir\npm.exe" -TypeDefinition @'
+          using System;
+          using System.Diagnostics;
+          using System.IO;
+          class NpmShim {
+              static int Main(string[] args) {
+                  string exeDir = Path.GetDirectoryName(
+                      System.Reflection.Assembly.GetExecutingAssembly().Location);
+                  var psi = new ProcessStartInfo();
+                  psi.FileName = Path.Combine(exeDir, "npm.cmd");
+                  psi.Arguments = String.Join(" ", args);
+                  psi.UseShellExecute = false;
+                  var p = Process.Start(psi);
+                  p.WaitForExit();
+                  return p.ExitCode;
+              }
+          }
+          '@
+          & "$nodeDir\npm.exe" --version
 
       - name: Install opam deps
         run: make install
