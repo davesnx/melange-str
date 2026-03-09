@@ -56,6 +56,14 @@ jobs:
           dune-cache: false
           opam-disable-sandboxing: true
 
+      - name: Make node available in Cygwin
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $nodePath = (Get-Command node).Source | Split-Path
+          $bashEnv = [System.Environment]::GetEnvironmentVariable("BASH_ENV")
+          Add-Content -Path $bashEnv -Value "export PATH=`$(cygpath -u '$nodePath'):`$PATH"
+
       - name: Install opam deps
         run: make install
 
